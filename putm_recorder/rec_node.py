@@ -29,6 +29,7 @@ class RecNode(Node):
         self.amk_error_events: dict[str, list] = {w: [] for w in AMK_WHEELS.values()}
 
         self.declare_parameter('recording_prefix', 'recording')
+        self.declare_parameter('storage_directory', '~/rosbag')
         self.declare_parameter('topics_to_record', rclpy.Parameter.Type.STRING_ARRAY)
 
         for topic_prefix, wheel in AMK_WHEELS.items():
@@ -142,15 +143,10 @@ class RecNode(Node):
 
         now = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         prefix = self.get_parameter('recording_prefix').get_parameter_value().string_value
-        putm_dir = "/home/putm/rosbag"
-        fallback_dir = "/tmp/rosbag"
+        storage_dir_param = self.get_parameter('storage_directory').get_parameter_value().string_value
 
-        if os.path.isdir(putm_dir):
-            base_dir = putm_dir
-        else:
-            self.get_logger().warn(f"{putm_dir} not found, using fallback: {fallback_dir}")
-            os.makedirs(fallback_dir, exist_ok=True)
-            base_dir = fallback_dir
+        base_dir = os.path.expanduser(storage_dir_param) if storage_dir_param else os.path.expanduser("~/rosbag")
+        os.makedirs(base_dir, exist_ok=True)
 
         filename = os.path.join(base_dir, f"{prefix}_{now}")
 
@@ -166,7 +162,7 @@ class RecNode(Node):
 
             self.process = subprocess.Popen(cmd)
             self.recording = True
-            self.get_logger().info(f"Started recording with PID: {self.process.pid}")
+            self.get_logger().info(f"Started recording with PID: {self.process.pid} to '{filename}'")
         except Exception as e:
             self.get_logger().error(f"Failed to launch ros2 bag record: {e}")
 

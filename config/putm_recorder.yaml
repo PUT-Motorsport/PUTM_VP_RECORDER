@@ -1,6 +1,7 @@
-/putm_recorder/rec_node:
+/**:
   ros__parameters:
     recording_prefix: "testowe"
+    storage_directory: "~/rosbag"
     topics_to_record:
       - "/imu/acceleration"
       - "/imu/angular_velocity"
