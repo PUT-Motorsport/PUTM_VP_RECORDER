@@ -29,6 +29,7 @@ class RecNode(Node):
         self.amk_error_events: dict[str, list] = {w: [] for w in AMK_WHEELS.values()}
 
         self.declare_parameter('recording_prefix', 'recording')
+        self.declare_parameter('topics_to_record', rclpy.Parameter.Type.STRING_ARRAY)
 
         for topic_prefix, wheel in AMK_WHEELS.items():
             self.create_subscription(
@@ -46,54 +47,6 @@ class RecNode(Node):
 
         self._prev_error: dict[str, bool] = {w: False for w in AMK_WHEELS.values()}
         self._prev_warn:  dict[str, bool] = {w: False for w in AMK_WHEELS.values()}
-
-        self.topics_to_record = [
-            "/imu/acceleration",
-            "/imu/angular_velocity",
-            "/parameter_events",
-            "/putm_vcl/amk/front/left/actual_values1",
-            "/putm_vcl/amk/front/left/actual_values2",
-            "/putm_vcl/amk/front/left/setpoints",
-            "/putm_vcl/amk/front/right/actual_values1",
-            "/putm_vcl/amk/front/right/actual_values2",
-            "/putm_vcl/amk/front/right/setpoints",
-            "/putm_vcl/amk/rear/left/actual_values1",
-            "/putm_vcl/amk/rear/left/actual_values2",
-            "/putm_vcl/amk/rear/left/setpoints",
-            "/putm_vcl/amk/rear/right/actual_values1",
-            "/putm_vcl/amk/rear/right/actual_values2",
-            "/putm_vcl/amk/rear/right/setpoints",
-            "/putm_vcl/bms_hv_main",
-            "/putm_vcl/bms_lv_main",
-            "/putm_vcl/current_sensor",
-            "/putm_vcl/dashboard",
-            "/putm_vcl/frontbox_data",
-            "/putm_vcl/frontbox_driver_input",
-            "/putm_vcl/lap_timer",
-            "/putm_vcl/pdu_channel",
-            "/putm_vcl/pdu_data",
-            "/putm_vcl/rtd",
-            "/putm_vcl/setpoints",
-            "/putm_vcl/state_machine",
-            "/putm_vcl/steering_wheel",
-            "/putm_vcl/xsens_acceleration",
-            "/putm_vcl/xsens_dv",
-            "/putm_vcl/xsens_euler_publisher",
-            "/putm_vcl/xsens_orientation",
-            "/putm_vcl/xsens_position",
-            "/putm_vcl/xsens_rate_of_turn",
-            "/putm_vcl/xsens_temp",
-            "/putm_vcl/xsens_utc",
-            "/putm_vcl/xsens_velocity",
-            "/rosout",
-            "/status",
-            "/temperature",
-            "/tf",
-            "/vectornav/gnss",
-            #"/vectornav/raw/imu",
-            "/vectornav/velocity_body",
-            "/yaw_ref",
-        ]
 
     def _make_av1_callback(self, wheel: str):
         """
@@ -182,6 +135,11 @@ class RecNode(Node):
         self.stop_timer = None
 
     def start_recording(self):
+        topics = self.get_parameter('topics_to_record').get_parameter_value().string_array_value
+        if not topics:
+            self.get_logger().error("Parameter 'topics_to_record' is empty. Aborting recording.")
+            return
+
         now = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         prefix = self.get_parameter('recording_prefix').get_parameter_value().string_value
         putm_dir = "/home/putm/rosbag"
@@ -196,7 +154,7 @@ class RecNode(Node):
 
         filename = os.path.join(base_dir, f"{prefix}_{now}")
 
-        cmd = ["ros2", "bag", "record", "-s", "mcap", "-o", filename] + self.topics_to_record
+        cmd = ["ros2", "bag", "record", "-s", "mcap", "-o", filename] + list(topics)
 
         try:
             self.current_bag_path = filename
@@ -221,7 +179,7 @@ class RecNode(Node):
             self.get_logger().info("Process ros2 bag record completed.")
             self.append_metadata()
 
-    #Function for appending the info about inverters into metadata.yaml file
+    # Function for appending the info about inverters into metadata.yaml file
     def append_metadata(self):
         if not self.current_bag_path:
             return
