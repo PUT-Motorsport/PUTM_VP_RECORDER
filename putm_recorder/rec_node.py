@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from pathlib import Path
+from ament_index_python.packages import get_package_share_directory
 import rclpy
 from rclpy.node import Node
 from putm_vcl_interfaces.msg import Rtd, AmkActualValues1, AmkActualValues2
@@ -149,8 +150,18 @@ class RecNode(Node):
         os.makedirs(base_dir, exist_ok=True)
 
         filename = os.path.join(base_dir, f"{prefix}_{now}")
+        storage_config_path = os.path.join(
+            get_package_share_directory('putm_recorder'),
+            'config',
+            'mcap_storage.yaml'
+        )
 
-        cmd = ["ros2", "bag", "record", "-s", "mcap", "-o", filename] + list(topics)
+        cmd = [
+            "ros2", "bag", "record",
+            "-s", "mcap",
+            "--storage-config-file", storage_config_path,
+            "-o", filename
+        ] + list(topics)
 
         try:
             self.current_bag_path = filename

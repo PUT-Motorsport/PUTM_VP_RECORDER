@@ -1,0 +1,11 @@
+# MCAP storage configuration for ros2 bag record
+# Smaller chunkSize = more frequent disk writes (less data lost on sudden power cut),
+# but slightly worse compression, larger file size, and higher I/O overhead.
+#
+# Reference values (in bytes):
+#   32768  (32 KiB)  - very frequent writes, max safety, higher I/O & larger files
+#   65536  (64 KiB)  - high safety (~0.3-1.0 s max loss), good compression
+#   131072 (128 KiB) - balanced default (~0.5-2.0 s max loss, good compression)
+#   786432 (768 KiB) - rosbag2 default (best compression, higher data loss risk)
+
+chunkSize: 131072
